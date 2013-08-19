@@ -6,6 +6,7 @@ import (
   "bufio"   // provides buffered read methods, simplifying common tasks like reading lines from a socket
   "strconv" // function Itoa() that converts an integer to a string
   "fmt"     // for printing strings to the console
+  "bytes"   // Compare bytes
 )
 
 const PORT = 8000 // port that the server is going to listen
@@ -52,19 +53,39 @@ func clientConns(listener net.Listener) chan net.Conn {
    return ch
 }
 
+//client.Write(line)
+
+// controls the main connection with client
 func handleConn(client net.Conn) {
 
-  //Sends Hello!
-  byteMessage := []byte("Hello! Connection established with " + "\n")
+  // sends hello!
+  byteMessage := []byte("Hello! Connection established with server\n")
   client.Write(byteMessage)
 
+  // used to manage the connection
+    unsec := []byte("unsec")
+    sec   := []byte("sec")
+    //unsec_ch make(chan )
+    //sec_ch   make(chan )
+
+  // buffers the client req
   b := bufio.NewReader(client)
+
   for {
     line, err := b.ReadBytes('\n')
     if err != nil { // EOF, or worse
       break
     }
-  client.Write(line)
+
+    if(bytes.HasPrefix(line, unsec) == true){
+      fmt.Print("Unsec connection with ", client.RemoteAddr(), "\n")
+      //go HandleUnsec()
+      //sec_ch <- 0
+
+    } else if(bytes.HasPrefix(line, sec) == true){
+      fmt.Print("Sec connection with ", client.RemoteAddr(), "\n")
+      //go HandleSec()
+      //unsec_ch <- 0
+    }
   }
 }
-
