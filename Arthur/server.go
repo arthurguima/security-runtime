@@ -63,7 +63,7 @@ func handleConn(client net.Conn) {
   // used to manage the connection
     unsec := []byte("unsec")
     sec   := []byte("sec")
-    //unsec_ch make(chan net.Conn)
+    unsec_ch := make(chan int)
     //sec_ch   make(chan )
 
   // buffers the client req
@@ -77,18 +77,18 @@ func handleConn(client net.Conn) {
 
     if(bytes.HasPrefix(line, unsec) == true){
       fmt.Print("Unsec connection with ", client.RemoteAddr(), "\n")
-      go HandleUnsec(client)
+      go HandleUnsec(client, unsec_ch)
       //sec_ch <- 0
 
     } else if(bytes.HasPrefix(line, sec) == true){
       fmt.Print("Sec connection with ", client.RemoteAddr(), "\n")
       //go HandleSec()
-      //unsec_ch <- 0
+      unsec_ch <- 1 
     }
   }
 }
 
-func HandleUnsec (client net.Conn) {
+func HandleUnsec (client net.Conn, exit chan int ) {
   // leave to the SO the responsability to choose an avaliable port
   unsec_server, err := net.Listen("tcp", "10.16.1.14:0")
   if unsec_server == nil {
@@ -108,16 +108,28 @@ func HandleUnsec (client net.Conn) {
     }
 
   // buffers the client req
-     b := bufio.NewReader(unsec_client)
+     b := bufio.NewReader(unsec_client) 
+
+     interrupt := false
 
   for {
-    line, err := b.ReadBytes('\n')
-    if err != nil { // EOF, or worse
+    select {
+      case <- exit:
+        interrupt = true
+        break
+      default:
+        line, err := b.ReadBytes('\n')
+        if err != nil { // EOF, or worse
+          break
+        }
+        fmt.Print("Unsec Message Received: \n") 
+        unsec_client.Write(line)
+    }
+    if (interrupt == true){
       break
     }
-    fmt.Print("Unsec Message Received: \n") 
-    unsec_client.Write(line)
   }
+  unsec_server.Close()
 }
 
 /*func HandleSec (client net.Conn){
