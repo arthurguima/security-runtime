@@ -14,7 +14,7 @@ const PORT = 8000 // port that the server is going to listen
 func main() {
 
   // we start by declaring and initializing a new listener for the server
-  server, err := net.Listen("tcp", ":" + strconv.Itoa(PORT))
+  server, err := net.Listen("tcp", "10.16.1.14:" + strconv.Itoa(PORT))
   if server == nil {
     // exits the application
     panic(err)
@@ -45,27 +45,25 @@ func clientConns(listener net.Listener) chan net.Conn {
         continue
       }
       fmt.Printf("New connection with: %v established\n", client.RemoteAddr())
+      // sends hello!
+         byteMessage := []byte("Hello! Connection established with: " + listener.Addr().String() + ".\n")
+         client.Write(byteMessage) 
       // send the client, of type net.Conn to the channel 
-      ch <- client
+         ch <- client
     }
 
    }()
    return ch
 }
 
-//client.Write(line)
 
 // controls the main connection with client
 func handleConn(client net.Conn) {
 
-  // sends hello!
-  byteMessage := []byte("Hello! Connection established with server\n")
-  client.Write(byteMessage)
-
   // used to manage the connection
     unsec := []byte("unsec")
     sec   := []byte("sec")
-    //unsec_ch make(chan )
+    //unsec_ch make(chan net.Conn)
     //sec_ch   make(chan )
 
   // buffers the client req
@@ -79,7 +77,7 @@ func handleConn(client net.Conn) {
 
     if(bytes.HasPrefix(line, unsec) == true){
       fmt.Print("Unsec connection with ", client.RemoteAddr(), "\n")
-      //go HandleUnsec()
+      go HandleUnsec(client)
       //sec_ch <- 0
 
     } else if(bytes.HasPrefix(line, sec) == true){
@@ -89,3 +87,38 @@ func handleConn(client net.Conn) {
     }
   }
 }
+
+func HandleUnsec (client net.Conn) {
+  // leave to the SO the responsability to choose an avaliable port
+  unsec_server, err := net.Listen("tcp", "10.16.1.14:0")
+  if unsec_server == nil {
+    // exits the application
+    panic(err)
+  }
+
+  // announces to client the address 
+  unsec_addr := []byte( unsec_server.Addr().String())
+  client.Write(unsec_addr)
+
+  //Waits for client to connect
+    unsec_client, err := unsec_server.Accept()
+    if unsec_client == nil {
+        fmt.Printf("couldn't accept: %s\n", err)
+        panic(err)
+    }
+
+  // buffers the client req
+     b := bufio.NewReader(unsec_client)
+
+  for {
+    line, err := b.ReadBytes('\n')
+    if err != nil { // EOF, or worse
+      break
+    }
+    fmt.Print("Unsec Message Received: \n") 
+    unsec_client.Write(line)
+  }
+}
+
+/*func HandleSec (client net.Conn){
+}*/
