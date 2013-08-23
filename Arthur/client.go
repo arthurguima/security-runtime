@@ -13,7 +13,7 @@ import (
   "io"
 )
 
-const S_PORT = 8000 // port that the server is going to listen
+const S_PORT = 9000 // port that the server is going to listen
 const S_ADDR = "10.16.1.14:"
 const KEY = "Example Key 1234"
 
@@ -26,6 +26,12 @@ func main() {
     fmt.Printf("Connection Refused: ")
 	  panic(err)// handle error
   }  
+   var msg = make([]byte, 512)
+   server.Read(msg)
+   n := bytes.Index(msg, []byte{0})
+   s := string(msg[:n])
+   fmt.Printf(s+"\n")
+  
   fmt.Printf("Use $unsec for secure connections or $sec for unsecure:\n")
   Switch(server)
   
@@ -37,13 +43,12 @@ func Switch(server net.Conn){
   for{
     fmt.Scan(&message)
     if(message == "$unsec"){
-      fmt.Printf("Unsecure connection:\n\n")
+      fmt.Printf("Unsecure connection with:\n")
       go HandleUnsec(server, continue_ch)
     } else if(message == "$sec"){
-      fmt.Printf("Secure connection:\n")
+      fmt.Printf("Secure connection!\n")
      // go HandleSec()
     }
-    <- continue_ch
   }
 
 }
@@ -56,16 +61,28 @@ func HandleUnsec(server net.Conn, continue_ch chan int){
    
     n := bytes.Index(msg, []byte{0})
     s := string(msg[:n])
-    fmt.Printf(s+"\n")
+    fmt.Printf(s+"\n\n")
+
+    unsec_server, err := net.Dial("tcp", s)
+    if err != nil {
+      fmt.Printf("Connection Refused: ")
+	    panic(err)// handle error
+    } 
  
     fmt.Printf("Now you can send your unsecure messages:\n")
+    fmt.Printf("Use $end to finish the secure connection.\n")
     var message string
 
     for{
         fmt.Scan(&message)
-        if(message == "$sec"){
+        if(message == "$end"){
            break 
-        }           
+        }
+        unsec_server.Write([]byte(message + "\n\n"))
+        unsec_server.Read(msg)
+         n = bytes.Index(msg, []byte{0})
+         s = string(msg[:n])
+        fmt.Printf("Echo: " + s + "\n")
     }
     continue_ch <- 1
 }

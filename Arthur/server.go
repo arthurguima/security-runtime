@@ -15,7 +15,7 @@ import (
 "io"
 )
 
-const PORT = 8000 // port that the server is going to listen
+const PORT = 9000 // port that the server is going to listen
 const IP = "10.16.1.14:"
 const KEY = "Example Key 1234"
 
@@ -113,7 +113,7 @@ func HandleUnsec (client net.Conn, exit_unsec_ch chan int, sec_ch chan int, exit
   }
 
   // announces to client the address 
-  unsec_addr := []byte( unsec_server.Addr().String() + "\n")
+  unsec_addr := []byte( unsec_server.Addr().String())
   client.Write(unsec_addr)
 
   //Waits for client to connect
@@ -127,7 +127,7 @@ func HandleUnsec (client net.Conn, exit_unsec_ch chan int, sec_ch chan int, exit
      b := bufio.NewReader(unsec_client) 
 
      interrupt := false
-
+     var line = make([]byte, 512)  
   for {
     select {
       case <- exit_unsec_ch:
@@ -135,11 +135,12 @@ func HandleUnsec (client net.Conn, exit_unsec_ch chan int, sec_ch chan int, exit
 		unsec_client.Write([]byte("Connection Closed!\n"))
         break
       default:
-        line, err := b.ReadBytes('\n')
+        line, err = b.ReadBytes('\n')
         if err != nil { // EOF, or worse
           break
         }
-        fmt.Print("Unsec Message Received From: ", client.RemoteAddr(), "\n")
+        fmt.Print("Unsec Message Received From: ", client.RemoteAddr(), "->")
+        fmt.Print(s+"\n")
         unsec_client.Write(line)
     }
     if (interrupt == true){
