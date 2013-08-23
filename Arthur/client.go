@@ -15,7 +15,7 @@ import (
 
 const S_PORT = 9000 // port that the server is going to listen
 const S_ADDR = "10.16.1.14:"
-const KEY = "Example Key 1234"
+const KEY = "0000000000000001"
 
 func main() {
 
@@ -47,8 +47,9 @@ func Switch(server net.Conn){
       go HandleUnsec(server, continue_ch)
     } else if(message == "$sec"){
       fmt.Printf("Secure connection!\n")
-     // go HandleSec()
+      go HandleSec(server,continue_ch)
     }
+     <- continue_ch 
   }
 
 }
@@ -70,24 +71,64 @@ func HandleUnsec(server net.Conn, continue_ch chan int){
     } 
  
     fmt.Printf("Now you can send your unsecure messages:\n")
-    fmt.Printf("Use $end to finish the secure connection.\n")
+    fmt.Printf("Use $end to finish the unsecure connection.\n")
     var message string
 
     for{
-        fmt.Scan(&message)
+        fmt.Scanf("%s", &message)
+        fmt.Printf("Lido: " + message +"\n")
         if(message == "$end"){
            break 
         }
-        unsec_server.Write([]byte(message + "\n\n"))
+        //unsec_server.Write([]byte(message))
+        fmt.Fprintf(unsec_server, message+"\n")
         unsec_server.Read(msg)
-         n = bytes.Index(msg, []byte{0})
-         s = string(msg[:n])
-        fmt.Printf("Echo: " + s + "\n")
+        fmt.Printf("ECHO: ",msg,"\n");        
+        n = bytes.Index(msg, []byte{0})
+        s = string(msg[:n])
     }
     continue_ch <- 1
 }
 
-func HandleSec(client net.Conn){
+func HandleSec(server net.Conn, continue_ch chan int){
+    server.Write([]byte("sec\n"))
+
+    var msg = make([]byte, 512)
+	  server.Read(msg)
+    n := bytes.Index(msg, []byte{0})
+    s := string(msg[:n])
+    fmt.Printf(s+"\n\n")
+
+    sec_server, err := net.Dial("tcp", s)
+    if err != nil {
+      fmt.Printf("Connection Refused: ")
+	    panic(err)// handle error
+    } 
+ 
+    fmt.Printf("Now you can send your secure messages:\n")
+    fmt.Printf("Use $end to finish the secure connection.\n")
+    var message string
+
+    for{
+        fmt.Scanf("%s", &message)
+        fmt.Printf("Lido: " + message +"\n")
+       
+        if(message == "$end"){
+           break 
+        } 
+        msgEncrypted := Encrypter(message,KEY);
+        //unsec_server.Write([]byte(message))
+        fmt.Fprintf(sec_server, msgEncrypted+"\n")
+        sec_server.Read(msg)
+        
+        n = bytes.Index(msg, []byte{0})
+        s = string(msg[:n])
+        msgDecrypted := Decrypter(s,KEY);
+        fmt.Printf("ECHO: %s",msgDecrypted);        
+        
+        
+    }
+    continue_ch <- 1
 }
 
 
@@ -123,7 +164,7 @@ func Encrypter(plainText string, key string) string {
 	return hex.EncodeToString(ciphertext) 
 }
 
-func Decrypter(cipherText string, key string) string {
+func Decrypter(cipherText string, key string) []byte {
 	keyByte := []byte(key)
 	ciphertext, _ := hex.DecodeString(cipherText)
 
@@ -158,6 +199,6 @@ func Decrypter(cipherText string, key string) string {
 	// using crypto/hmac) before being decrypted in order to avoid creating
 	// a padding oracle.
 
-	fmt.Printf("%s\n", ciphertext)
-	return cipherText
+	//fmt.Printf("%s\n", ciphertext)
+	return ciphertext
 }

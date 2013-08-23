@@ -17,7 +17,7 @@ import (
 
 const PORT = 9000 // port that the server is going to listen
 const IP = "10.16.1.14:"
-const KEY = "Example Key 1234"
+const KEY = "0000000000000001"
 
 func main() {
 
@@ -122,26 +122,30 @@ func HandleUnsec (client net.Conn, exit_unsec_ch chan int, sec_ch chan int, exit
         fmt.Printf("couldn't accept: %s\n", err)
         panic(err)
     }
-
-  // buffers the client req
-     b := bufio.NewReader(unsec_client) 
-
+     // buffers the client req
+    // b := bufio.NewReader(unsec_client)  
      interrupt := false
-     var line = make([]byte, 512)  
+    var cmd string  
+
   for {
     select {
       case <- exit_unsec_ch:
         interrupt = true
-		unsec_client.Write([]byte("Connection Closed!\n"))
+		    unsec_client.Write([]byte("Connection Closed!\n"))
         break
       default:
-        line, err = b.ReadBytes('\n')
+        fmt.Fscan(unsec_client, &cmd)  
+       // line, err := b.ReadBytes('\n')
+        //unsec_client.Read(line)
         if err != nil { // EOF, or worse
           break
         }
-        fmt.Print("Unsec Message Received From: ", client.RemoteAddr(), "->")
-        fmt.Print(s+"\n")
-        unsec_client.Write(line)
+        fmt.Print("\nUnsec Message Received From: ", client.RemoteAddr(), "\n")
+        //unsec_client.Write(line)
+      //  n := bytes.Index(line, []byte{0})
+    	//	s := string(line[:n])
+        fmt.Fprintf(unsec_client, cmd)
+        fmt.Printf(cmd)
     }
     if (interrupt == true){
       break
@@ -176,31 +180,28 @@ func HandleSec (client net.Conn, exit_sec_ch chan int, unsec_ch chan int, exit_u
     }
 	
 	 // buffers the client req
-     b := bufio.NewReader(sec_client)
+    // b := bufio.NewReader(sec_client)
 	//Used to break the loop
-     interrupt := false
-
+ interrupt := false
+ var cmd string  
   for {
     select {
       case <- exit_sec_ch:
         interrupt = true
-		sec_client.Write([]byte("Connection Closed!\n"))
+		    sec_client.Write([]byte("Connection Closed!\n"))
         break
       default:
-		 line, err := b.ReadBytes('\n')
+        fmt.Fscan(sec_client, &cmd)  
         if err != nil { // EOF, or worse
           break
         }		
-		fmt.Print("Sec Message Received From: ", client.RemoteAddr(),"\n")
-		fmt.Printf("MSG criptografada : ", line)
-		
-//		n := bytes.Index(line, []byte{0})
-//		s := string(line[:n])
-		s := hex.EncodeToString(line);
-		fmt.Printf("MSG criptografada em STRING ",s);		
-		msgPlane:= Decrypter(s, KEY)
-		fmt.Printf("MSG descriptografa : %+v",msgPlane) 	
-        sec_client.Write([]byte(s))
+		    fmt.Print("Sec Message Received From: ", client.RemoteAddr(),"\n")
+	    
+		    //mt.Printf("MSG criptografada em STRING ",cmd,"\n");		
+		    msgPlane:= Decrypter(cmd, KEY)
+		    fmt.Printf("MSG descriptografa %s \n",msgPlane) 	
+        fmt.Fprintf(sec_client, cmd)    
+
     }
     if (interrupt == true){
       break
@@ -242,7 +243,7 @@ func Encrypter(plainText string, key string) string {
 	return hex.EncodeToString(ciphertext) 
 }
 
-func Decrypter(cipherText string, key string) string {
+func Decrypter(cipherText string, key string) []byte {
 	keyByte := []byte(key)
 	ciphertext, _ := hex.DecodeString(cipherText)
 
@@ -277,7 +278,7 @@ func Decrypter(cipherText string, key string) string {
 	// using crypto/hmac) before being decrypted in order to avoid creating
 	// a padding oracle.
 
-	fmt.Printf("%s\n", ciphertext)
-	return cipherText
+//	fmt.Printf("%s\n", ciphertext)
+	return ciphertext
 }
 
