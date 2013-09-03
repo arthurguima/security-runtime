@@ -16,24 +16,8 @@ import (
 )
 
 const PORT = 9000 // port that the server is going to listen
-const IP = "192.168.0.142:"
+const IP = "10.16.1.14:"
 const KEY = "0000000000000001"
-
-type SecListener net.Listener
-
-func ListenSec(network string, laddr string) (net.Listener, error){
-
-  server, err := net.Listen(network,laddr)
-  if server == nil {
-    // exits the application
-    panic(err)
-  }
-  return server, err;
-}
-
-func(ln SecListener) Accept()(net.Conn,error){
-	return ln.Accept();
-}
 
 func main() {
 
@@ -49,7 +33,6 @@ func main() {
   // each time we start a goroutine, with the value receive operation on our client connections channel.
   // the unary operator <- blocks until a value is available on the channel (a new client having connected)
   for { 
-    fmt.Printf("New Connection\n");
     go handleConn(<-conns)
   }
 }

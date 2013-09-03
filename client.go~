@@ -14,7 +14,7 @@ import (
 )
 
 const S_PORT = 9000 // port that the server is going to listen
-const S_ADDR = "192.168.0.142:"
+const S_ADDR = "10.16.1.14:"
 const KEY = "0000000000000001"
 
 func main() {
